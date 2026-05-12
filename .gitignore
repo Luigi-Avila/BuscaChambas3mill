@@ -1,0 +1,31 @@
+# Environments
+.env
+.venv
+venv
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Google & Firebase Credentials
+credentials.json
+serviceAccountKey.json
+token.json
+
+# Logs and reports
+*.log
+job_report.html
+
+# Personal/Context
+context/
+.DS_Store
+
+# Node
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

@@ -1,0 +1,10 @@
+playwright
+playwright-stealth
+google-generativeai
+python-dotenv
+requests
+firebase-admin
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+apscheduler
