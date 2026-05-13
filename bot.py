@@ -134,6 +134,16 @@ class CareerBot:
                             chat_id
                         )
                     
+                    elif text.startswith("/help"):
+                        help_text = (
+                            "📖 <b>Guía de Comandos del Agente</b>\n\n"
+                            "ℹ️ /status - Muestra el estado actual, el host y el modelo de IA.\n"
+                            "🚀 /run [perfil] - Ejecuta una búsqueda manual. Ejemplo: <code>/run luis</code> o <code>/run hector</code>.\n"
+                            "🛑 /stop - Apaga el agente en la máquina que responde.\n"
+                            "❓ /help - Muestra esta lista de comandos."
+                        )
+                        self._send_msg(help_text, chat_id)
+                    
                     elif text.startswith("/stop"):
                         import socket
                         hostname = socket.gethostname()
