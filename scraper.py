@@ -3,6 +3,7 @@ import urllib.parse
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 from database import db_client
+from logger_config import logger
 
 async def scroll_page(page):
     """Performs infinite scroll to load more job listings."""
@@ -14,7 +15,10 @@ async def scrape_linkedin(keywords, location):
     jobs = []
     query = urllib.parse.quote(keywords)
     loc = urllib.parse.quote(location)
-    url = f"https://www.linkedin.com/jobs/search/?keywords={query}&location={loc}"
+    
+    # f_WT=2 is the filter for Remote
+    # f_AL=true is the filter for Easy Apply (Apply with LinkedIn)
+    url = f"https://www.linkedin.com/jobs/search/?keywords={query}&location={loc}&f_WT=2&f_AL=true"
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -27,7 +31,7 @@ async def scrape_linkedin(keywords, location):
         stealth_config = Stealth()
         await stealth_config.apply_stealth_async(page)
         
-        print(f"Scraping LinkedIn: {url}")
+        logger.info(f"Scraping LinkedIn: {url}")
         try:
             await page.goto(url, timeout=60000)
             await scroll_page(page)
@@ -40,7 +44,7 @@ async def scrape_linkedin(keywords, location):
                 link = link.split('?')[0]
                 
                 if db_client.vacancy_exists(link):
-                    print(f"Skipping existing: {link}")
+                    logger.info(f"Skipping existing: {link}")
                     continue
                 
                 title_el = await card.query_selector(".base-search-card__title, .job-search-card__title")
@@ -55,7 +59,7 @@ async def scrape_linkedin(keywords, location):
                     "status": "PENDING"
                 })
         except Exception as e:
-            print(f"LinkedIn Scrape Error: {e}")
+            logger.error(f"LinkedIn Scrape Error: {e}")
         finally:
             await browser.close()
     return jobs
@@ -67,7 +71,7 @@ async def scrape_indeed(keywords, location):
     loc = urllib.parse.quote(location)
     url = f"https://www.indeed.com/jobs?q={query}&l={loc}"
     # Implement similarly to LinkedIn with specific Indeed selectors
-    print(f"Scraping Indeed: {url} (Placeholder)")
+    logger.info(f"Scraping Indeed: {url} (Placeholder)")
     return jobs
 
 async def run_pro_scraper(keywords, location):

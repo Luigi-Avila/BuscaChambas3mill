@@ -5,13 +5,14 @@ from database import db_client
 from bot import CareerBot, start_scheduler
 from gmail_monitor import monitor_emails
 from dotenv import load_dotenv
+from logger_config import logger
 
 async def run_now():
     """Manual run for immediate results."""
     load_dotenv()
     bot = CareerBot()
     
-    print("--- Executing Manual Run (Career Agent Pro v2.0) ---")
+    logger.info("--- Executing Manual Run (Career Agent Pro v2.0) ---")
     
     # 1. Scraping
     new_jobs = await run_pro_scraper("Android Developer", "California")
@@ -19,7 +20,7 @@ async def run_now():
     # 2. Evaluation & Persistence
     evaluated_jobs = []
     for job in new_jobs:
-        print(f"Analyzing: {job['title']}...")
+        logger.info(f"Analyzing: {job['title']}...")
         analysis = evaluate_vacancy_pro(job)
         job['evaluation'] = analysis
         
@@ -36,15 +37,15 @@ async def run_now():
     monitor_emails()
 
 async def main():
-    print("Initializing CareerBot...")
+    logger.info("Initializing CareerBot...")
     bot = CareerBot()
     
     # Start scheduler
-    print("Starting Scheduler (2 AM Scrape, 8:30 AM Report)...")
+    logger.info("Starting Scheduler (2 AM Scrape, 8:30 AM Report)...")
     start_scheduler()
     
     # Start Telegram listener
-    print("Starting Telegram Listener... Use /status or /run in Telegram.")
+    logger.info("Starting Telegram Listener... Use /status or /run in Telegram.")
     await bot.listen_for_commands()
 
 if __name__ == "__main__":
