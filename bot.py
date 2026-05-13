@@ -98,7 +98,17 @@ class CareerBot:
 
     async def listen_for_commands(self):
         """Polls for new messages/commands from Telegram."""
+        # Initial call to skip pending updates from before the bot started
         offset = 0
+        try:
+            response = requests.get(self.url + "getUpdates?offset=-1&timeout=0")
+            updates = response.json().get('result', [])
+            if updates:
+                offset = updates[-1]['update_id'] + 1
+                logger.info("Skipped old Telegram messages.")
+        except Exception as e:
+            logger.error(f"Error skipping updates: {e}")
+
         logger.info("Bot command listener active. Use /status in Telegram.")
         while True:
             try:
