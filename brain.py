@@ -98,6 +98,14 @@ def evaluate_vacancy_pro(job_data: dict, profile_name: str = "luis"):
         target_name = "Luis (Android Engineer)"
         constraints_prompt = ""
 
+    # Add profile-specific instructions for the LLM
+    if profile_name.lower() == "hector":
+        extra_instructions = "3. OE SUITABILITY: Analyze if the role seems high-pressure or meeting-heavy vs objective-based."
+        oe_schema = '"oe_analysis": "brief analysis of suitability for overemployment",'
+    else:
+        extra_instructions = ""
+        oe_schema = ""
+
     prompt = f"""
     You are an expert technical recruiter matching jobs for {target_name}.
     
@@ -112,15 +120,20 @@ def evaluate_vacancy_pro(job_data: dict, profile_name: str = "luis"):
     
     Instructions:
     1. Analyze if this job matches {profile_name.capitalize()} (match_score 0-10) based on all constraints.
-    2. Respond STRICTLY in JSON format.
+    2. Identify why it might not be a perfect match (reason_no_match).
+    {extra_instructions}
+    4. Create a 'study_plan' with:
+       - 'links': Real Android documentation or high-quality tutorial links for missing skills.
+       - 'exercises': Practical coding exercises to prepare for the interview.
+    5. Respond STRICTLY in JSON format.
     
     JSON Schema:
     {{
         "match_score": integer,
         "worth_applying": boolean,
-        "reason_no_match": "string explaining why or highlighting gaps (e.g., Not Remote, Citizenship required, low salary)",
+        "reason_no_match": "string explaining why or highlighting gaps",
         "salary": "string or 'Not specified'",
-        "oe_analysis": "brief analysis of suitability for overemployment",
+        {oe_schema}
         "study_plan": {{
             "links": ["url1", "url2"],
             "exercises": ["exercise1", "exercise2"]

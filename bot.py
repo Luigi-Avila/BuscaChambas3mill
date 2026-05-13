@@ -39,11 +39,31 @@ class CareerBot:
         for v in vacancies:
             status = "✅" if v['evaluation']['worth_applying'] else "❌"
             resp_time = v['evaluation'].get('response_time', 'N/A')
-            oe = v['evaluation'].get('oe_analysis', 'N/A')
             
             job_entry = f"{status} <b>{v['title']}</b> ({v['company']})\n"
             job_entry += f"Score: {v['evaluation']['match_score']}/10 | ⏱ {resp_time}s\n"
-            job_entry += f"💡 OE: {oe}\n"
+            
+            # Show OE only for Hector
+            if v['evaluation'].get('profile', 'luis').lower() == "hector":
+                oe = v['evaluation'].get('oe_analysis', 'N/A')
+                job_entry += f"💡 OE: {oe}\n"
+            
+            # Reason for match/no match
+            reason = v['evaluation'].get('reason_no_match', 'N/A')
+            job_entry += f"📝 <b>Motivo:</b> {reason}\n"
+
+            # Study Plan / Skills
+            study_plan = v['evaluation'].get('study_plan', {})
+            links = study_plan.get('links', [])
+            exercises = study_plan.get('exercises', [])
+            
+            if links or exercises:
+                job_entry += "📚 <b>Para estudiar:</b>\n"
+                if links:
+                    job_entry += "  🔗 " + ", ".join([f"<a href='{l}'>Link</a>" for l in links]) + "\n"
+                if exercises:
+                    job_entry += "  ✍️ " + "; ".join(exercises[:2]) + "\n" # Show first 2 exercises
+
             job_entry += f"🔗 <a href='{v['link']}'>Ver Vacante</a>\n\n"
             
             # Telegram has a 4096 character limit per message
