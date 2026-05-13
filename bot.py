@@ -116,19 +116,31 @@ class CareerBot:
 
                     if text.startswith("/status"):
                         from datetime import datetime
+                        import socket
                         now = datetime.now().strftime("%H:%M:%S")
                         use_ollama = os.getenv("USE_OLLAMA", "false").lower() == "true"
                         model_info = f"Ollama ({os.getenv('OLLAMA_MODEL', 'qwen3:14b')})" if use_ollama else "Gemini Flash"
                         profile = "Luis" if chat_id == self.luis_chat_id else "Hector"
+                        hostname = socket.gethostname()
+                        pid = os.getpid()
                         
                         self._send_msg(
                             f"🤖 <b>Status: ACTIVO ({profile})</b>\n"
+                            f"💻 Host: <code>{hostname}</code> (PID: {pid})\n"
                             f"🧠 Modelo: {model_info}\n"
                             f"⏰ Hora actual: {now}\n"
                             f"📅 Próximo escaneo: 02:00 AM\n"
                             f"📊 Reporte diario: 08:30 AM",
                             chat_id
                         )
+                    
+                    elif text.startswith("/stop"):
+                        import socket
+                        hostname = socket.gethostname()
+                        self._send_msg(f"🛑 <b>Apagando agente</b> en <code>{hostname}</code> por comando remoto...", chat_id)
+                        logger.warning(f"Remote shutdown triggered via Telegram from chat_id: {chat_id}")
+                        await asyncio.sleep(1) # Give time to send message
+                        os._exit(0) # Immediate exit
                     
                     elif text.startswith("/run"):
                         # If Hector sends /run, default to his profile
