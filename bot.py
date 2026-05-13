@@ -153,16 +153,16 @@ class CareerBot:
                             continue
                             
                         self._send_msg(f"🚀 Iniciando búsqueda manual para <b>{profile.capitalize()}</b>...", chat_id)
-                        asyncio.create_task(do_manual_run(profile))
+                        asyncio.create_task(do_manual_run(profile, initiator_id=chat_id))
                         
                 await asyncio.sleep(1)
             except Exception as e:
                 logger.error(f"Bot Listener Error: {e}")
                 await asyncio.sleep(5)
 
-async def do_manual_run(profile):
+async def do_manual_run(profile, initiator_id=None):
     await do_scrape(profile)
-    await do_report()
+    await do_report(initiator_id=initiator_id)
 
 async def do_scrape(profile="luis"):
     """Triggered to scrape and analyze jobs for a specific profile."""
@@ -191,23 +191,28 @@ async def do_scrape(profile="luis"):
         logger.error(f"Error during scrape ({profile}): {e}")
         bot.notify_error(f"Escaneo ({profile})", e)
 
-async def do_report():
+async def do_report(initiator_id=None):
     """Triggered at 8:30 AM to send the Telegram report."""
     bot = CareerBot()
     try:
-        logger.info("--- Starting Scheduled Report (8:30 AM) ---")
+        logger.info("--- Starting Scheduled Report ---")
         # Get jobs from the last 10 hours (covers since 2 AM scrape)
         recent_jobs = db_client.get_recent_vacancies(hours=10)
         
         if recent_jobs:
             bot.send_report(recent_jobs)
             logger.info(f"Report sent with {len(recent_jobs)} jobs.")
+            # Notify the initiator if it's a manual run
+            if initiator_id:
+                bot._send_msg("✅ El reporte ha sido generado y enviado correctamente.", initiator_id)
         else:
-            bot._send_msg("📭 No se encontraron nuevas vacantes en el escaneo de hoy.")
+            msg = "📭 No se encontraron nuevas vacantes en el escaneo reciente."
+            target_id = initiator_id or bot.luis_chat_id
+            bot._send_msg(msg, target_id)
             logger.info("No new jobs to report.")
     except Exception as e:
         logger.error(f"Error during report generation: {e}")
-        bot.notify_error("Generación de Reporte (8:30 AM)", e)
+        bot.notify_error("Generación de Reporte", e)
 
 def start_scheduler():
     scheduler = AsyncIOScheduler(timezone="America/Los_Angeles")
