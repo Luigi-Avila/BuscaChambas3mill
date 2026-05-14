@@ -29,3 +29,6 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# LinkedIn Session
+.linkedin_session/
