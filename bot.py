@@ -352,11 +352,12 @@ async def run_auto_apply(job, job_doc_id, chat_id):
 def start_scheduler():
     scheduler = AsyncIOScheduler(timezone="America/Los_Angeles")
     
-    # Default scheduled scrape for Luis
-    scheduler.add_job(do_scrape, 'cron', hour=2, args=["luis"], misfire_grace_time=21600)
+    # Scheduled scrapes for Luis (2:00 AM) and Hector (3:00 AM)
+    scheduler.add_job(do_scrape, 'cron', hour=2, minute=0, args=["luis"], misfire_grace_time=21600)
+    scheduler.add_job(do_scrape, 'cron', hour=3, minute=0, args=["hector"], misfire_grace_time=21600)
     
     # Report at 8:30 AM
     scheduler.add_job(do_report, 'cron', hour=8, minute=30, misfire_grace_time=10800)
     
     scheduler.start()
-    logger.info("Scheduler active: Scrape at 2:00 AM (Luis), Report at 8:30 AM (PST).")
+    logger.info("Scheduler active: Scrapes at 2:00 AM (Luis) and 3:00 AM (Hector), Report at 8:30 AM (PST).")
