@@ -34,28 +34,38 @@ Hector Alonzo Romero - Technical Leader & Scrum Master
 
 def evaluate_with_ollama(prompt: str):
     """
-    Calls local Ollama API.
+    Calls local Ollama API with retry logic.
     """
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     model = os.getenv("OLLAMA_MODEL", "qwen3:14b")
+    max_retries = 3
     
-    try:
-        response = requests.post(
-            f"{base_url}/api/chat",
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "stream": False,
-                "format": "json"
-            },
-            timeout=60
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data.get("message", {}).get("content", "").strip()
-    except Exception as e:
-        logger.error(f"Ollama Error: {e}")
-        return None
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Ollama attempt {attempt}/{max_retries} for model {model}...")
+            response = requests.post(
+                f"{base_url}/api/chat",
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": False,
+                    "format": "json"
+                },
+                timeout=None # Wait indefinitely for the local LLM
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("message", {}).get("content", "").strip()
+        except requests.exceptions.Timeout:
+            logger.warning(f"Ollama Timeout (Attempt {attempt}/{max_retries}).")
+        except Exception as e:
+            logger.error(f"Ollama Error (Attempt {attempt}/{max_retries}): {e}")
+        
+        if attempt < max_retries:
+            time.sleep(2) # Short wait before retry
+            
+    logger.error("All Ollama attempts failed. Falling back to Gemini.")
+    return None
 
 def evaluate_with_gemini(prompt: str):
     """
@@ -106,6 +116,13 @@ def evaluate_vacancy_pro(job_data: dict, profile_name: str = "luis"):
         extra_instructions = ""
         oe_schema = ""
 
+    job_to_eval = f"""
+    Title: {title}
+    Source: {job_data.get('source', 'N/A')}
+    Application Type: {job_data.get('apply_type', 'N/A')}
+    Description: {description}
+    """
+
     prompt = f"""
     You are an expert technical recruiter matching jobs for {target_name}.
     
@@ -115,8 +132,7 @@ def evaluate_vacancy_pro(job_data: dict, profile_name: str = "luis"):
     {constraints_prompt}
     
     Job to evaluate:
-    Title: {title}
-    Description: {description}
+    {job_to_eval}
     
     Instructions:
     1. Analyze if this job matches {profile_name.capitalize()} (match_score 0-10) based on all constraints.

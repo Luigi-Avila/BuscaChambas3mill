@@ -34,25 +34,31 @@ class CareerBot:
     def _send_profile_report(self, vacancies, chat_id, name, model_name):
         header = f"<b>🌅 Reporte Diario de Carrera - {name}</b>\n"
         header += f"🤖 Inteligencia: {model_name}\n\n"
+        self._send_msg(header, chat_id)
         
-        current_message = header
-        for v in vacancies:
-            status = "✅" if v['evaluation']['worth_applying'] else "❌"
+        # Split between high match and low match
+        worth_applying_jobs = [v for v in vacancies if v['evaluation']['worth_applying']]
+        other_jobs = [v for v in vacancies if not v['evaluation']['worth_applying']]
+
+        # 1. Send High-Match Jobs with Buttons
+        for v in worth_applying_jobs:
             resp_time = v['evaluation'].get('response_time', 'N/A')
+            source = v.get('source', 'LinkedIn')
+            apply_type = v.get('apply_type', 'External')
+            apply_emoji = "⚡️" if apply_type == "Easy Apply" else "📝"
             
-            job_entry = f"{status} <b>{v['title']}</b> ({v['company']})\n"
+            job_entry = f"✅ <b>{v['title']}</b>\n"
+            job_entry += f"🏢 {v['company']}\n"
+            job_entry += f"📍 {source} | {apply_emoji} {apply_type}\n"
             job_entry += f"Score: {v['evaluation']['match_score']}/10 | ⏱ {resp_time}s\n"
             
-            # Show OE only for Hector
             if v['evaluation'].get('profile', 'luis').lower() == "hector":
                 oe = v['evaluation'].get('oe_analysis', 'N/A')
                 job_entry += f"💡 OE: {oe}\n"
             
-            # Reason for match/no match
             reason = v['evaluation'].get('reason_no_match', 'N/A')
             job_entry += f"📝 <b>Motivo:</b> {reason}\n"
 
-            # Study Plan / Skills
             study_plan = v['evaluation'].get('study_plan', {})
             links = study_plan.get('links', [])
             exercises = study_plan.get('exercises', [])
@@ -62,21 +68,32 @@ class CareerBot:
                 if links:
                     job_entry += "  🔗 " + ", ".join([f"<a href='{l}'>Link</a>" for l in links]) + "\n"
                 if exercises:
-                    job_entry += "  ✍️ " + "; ".join(exercises[:2]) + "\n" # Show first 2 exercises
+                    job_entry += "  ✍️ " + "; ".join(exercises[:2]) + "\n"
 
-            job_entry += f"🔗 <a href='{v['link']}'>Ver Vacante</a>\n\n"
+            # Button for the link
+            reply_markup = {
+                "inline_keyboard": [[
+                    {"text": f"🚀 Ver en {source}", "url": v['link']}
+                ]]
+            }
+            self._send_msg(job_entry, chat_id, reply_markup=reply_markup)
+
+        # 2. Send Summary for Low-Match Jobs
+        if other_jobs:
+            summary_header = "<b>❌ Otras vacantes analizadas (Bajo Match):</b>\n\n"
+            current_message = summary_header
+            for v in other_jobs:
+                job_line = f"• {v['title']} ({v['company']}) - Score: {v['evaluation']['match_score']}/10\n"
+                if len(current_message) + len(job_line) > 4000:
+                    self._send_msg(current_message, chat_id)
+                    current_message = job_line
+                else:
+                    current_message += job_line
             
-            # Telegram has a 4096 character limit per message
-            if len(current_message) + len(job_entry) > 4000:
+            if current_message:
                 self._send_msg(current_message, chat_id)
-                current_message = job_entry
-            else:
-                current_message += job_entry
-        
-        if current_message:
-            self._send_msg(current_message, chat_id)
 
-    def _send_msg(self, text, chat_id=None):
+    def _send_msg(self, text, chat_id=None, reply_markup=None):
         target_id = chat_id or self.luis_chat_id
         payload = {
             "chat_id": target_id,
@@ -84,6 +101,8 @@ class CareerBot:
             "parse_mode": "HTML",
             "disable_web_page_preview": True
         }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
         try:
             response = requests.post(self.url + "sendMessage", json=payload)
             if not response.ok:
@@ -192,10 +211,11 @@ async def do_scrape(profile="luis"):
     
     # Define keywords based on profile
     keywords = "Android Developer" if profile == "luis" else "Scrum Master"
+    filter_easy = (profile == "hector")
     
     try:
         logger.info(f"--- Starting Scrape for {profile} ({keywords}) ---")
-        new_jobs = await run_pro_scraper(keywords, "California")
+        new_jobs = await run_pro_scraper(keywords, "California", filter_easy_apply=filter_easy)
         
         evaluated_count = 0
         for job in new_jobs:
