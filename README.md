@@ -3,11 +3,12 @@
 An automated agent to search, evaluate, and track job vacancies using Gemini AI, Playwright, and Telegram.
 
 ## Features
-- **Scraping**: Automated job scraping from various platforms.
-- **Evaluation**: AI-powered job evaluation based on your profile.
-- **Monitoring**: Gmail monitoring for job updates.
-- **Notifications**: Telegram bot for reports and manual control.
-- **Database**: Persistence with Firestore/Firebase.
+- **Smart Scraping**: Multi-source scraping (LinkedIn, Indeed) with automatic detection of "Easy Apply" vs "External" applications.
+- **AI Evaluation**: Advanced job matching using **Ollama (local)** with a 3-retry redundancy fallback to **Gemini (cloud)**.
+- **Interactive Reports**: Daily Telegram reports with inline buttons to view vacancies or trigger automated applications.
+- **Automated Applying**: Background process that fills job forms automatically using your CV and AI-mapped field detection.
+- **Session Management**: Persistent browser sessions to maintain LinkedIn login and bypass 2FA after the first setup.
+- **Database**: Persistence with Firestore/Firebase to track application status (`PENDING`, `APPLYING`, `APPLIED`, `FAILED`).
 
 ## Setup
 
@@ -28,13 +29,27 @@ An automated agent to search, evaluate, and track job vacancies using Gemini AI,
    cp .env.example .env
    ```
 
-4. **Credentials**:
-   - Place your `credentials.json` (Gmail API) and `serviceAccountKey.json` (Firebase) in the root directory. These are ignored by git for security.
+4. **LinkedIn Session Setup (Crucial)**:
+   - Run the login helper to save your browser session:
+     ```bash
+     python3 login.py
+     ```
+   - Login manually in the window that opens, complete 2FA, and press ENTER in the terminal to save.
 
-5. **Run**:
-   ```bash
-   python main.py
-   ```
+5. **Credentials**:
+   - Place your `credentials.json` (Gmail API) and `serviceAccountKey.json` (Firebase) in the root directory.
+
+6. **Run**:
+   - Start the main agent with the scheduler:
+     ```bash
+     python main.py
+     ```
+
+## Telegram Commands
+- `/status`: Show current agent health, host, and AI model.
+- `/run [perfil]`: Manually trigger a scan and report for 'luis' or 'hector'.
+- `/help`: Display all available commands.
+- `/stop`: Remote shutdown of the agent.
 
 ## Security
-Sensitive files like `.env`, `*.json` credentials, and `context/` are excluded from version control via `.gitignore`.
+Sensitive files like `.env`, `*.json` credentials, `.linkedin_session/`, and logs are excluded from version control via `.gitignore`.
