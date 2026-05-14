@@ -78,7 +78,7 @@ async def scrape_indeed(keywords, location):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
         
         # We'll try to get up to 50 jobs by paginating (Indeed has ~15 per page)
@@ -86,7 +86,8 @@ async def scrape_indeed(keywords, location):
             if len(jobs) >= 50: break
             
             start = page_num * 10
-            url = f"https://www.indeed.com/jobs?q={query}&l={loc}&sc=0kf%3Aattr(DS798)%3B&start={start}"
+            # Simplified URL: removed sc filter which sometimes triggers blocks
+            url = f"https://www.indeed.com/jobs?q={query}&l={loc}&start={start}"
             
             page = await context.new_page()
             stealth_config = Stealth()
@@ -95,7 +96,15 @@ async def scrape_indeed(keywords, location):
             logger.info(f"Scraping Indeed (Page {page_num + 1}): {url}")
             try:
                 await page.goto(url, timeout=60000)
-                await page.wait_for_selector(".job_seen_beacon", timeout=15000)
+                
+                # Check for bot detection titles
+                page_title = await page.title()
+                if "hCaptcha" in page_title or "Cloudflare" in page_title or "Verify you are human" in page_title:
+                    logger.error(f"Indeed bot detection triggered on page {page_num}!")
+                    await page.close()
+                    break
+
+                await page.wait_for_selector(".job_seen_beacon", timeout=30000) # Increased to 30s
                 
                 job_cards = await page.query_selector_all(".job_seen_beacon")
                 for card in job_cards:
