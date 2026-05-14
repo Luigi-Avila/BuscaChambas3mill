@@ -219,10 +219,29 @@ class CareerBot:
                             "📖 <b>Guía de Comandos del Agente</b>\n\n"
                             "ℹ️ /status - Muestra el estado actual, el host y el modelo de IA.\n"
                             "🚀 /run [perfil] - Ejecuta una búsqueda manual. Ejemplo: <code>/run luis</code> o <code>/run hector</code>.\n"
+                            "⏳ /pending [perfil] - Muestra vacantes de alto match pendientes de aplicar.\n"
                             "🛑 /stop - Apaga el agente en la máquina que responde.\n"
                             "❓ /help - Muestra esta lista de comandos."
                         )
                         self._send_msg(help_text, chat_id)
+                    
+                    elif text.startswith("/pending"):
+                        default_profile = "luis" if chat_id == self.luis_chat_id else "hector"
+                        parts = text.split()
+                        profile = parts[1].lower() if len(parts) > 1 else default_profile
+                        
+                        if profile not in ["luis", "hector"]:
+                            self._send_msg("⚠️ Perfil no válido. Usa <code>/pending luis</code> o <code>/pending hector</code>.", chat_id)
+                            continue
+
+                        self._send_msg(f"⏳ Buscando vacantes pendientes para <b>{profile.capitalize()}</b>...", chat_id)
+                        pending = db_client.get_pending_high_match_vacancies(profile=profile, limit=10)
+                        
+                        if pending:
+                            for v in pending:
+                                self._send_job_with_buttons(v, chat_id)
+                        else:
+                            self._send_msg(f"✅ No tienes vacantes pendientes de alto match para el perfil <b>{profile.capitalize()}</b>.", chat_id)
                     
                     elif text.startswith("/stop"):
                         import socket

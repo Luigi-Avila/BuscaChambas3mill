@@ -48,6 +48,7 @@ An automated agent to search, evaluate, and track job vacancies using Gemini AI,
 ## Telegram Commands
 - `/status`: Show current agent health, host, and AI model.
 - `/run [perfil]`: Manually trigger a scan and report for 'luis' or 'hector'.
+- `/pending [perfil]`: Retrieve up to 10 high-match jobs that haven't been applied to yet.
 - `/help`: Display all available commands.
 - `/stop`: Remote shutdown of the agent.
 
