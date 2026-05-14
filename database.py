@@ -54,6 +54,25 @@ class Database:
         
         return [doc.to_dict() for doc in docs]
 
+    def get_vacancy_by_id(self, doc_id):
+        """Retrieves a specific vacancy by its document ID."""
+        if not self.db: return None
+        doc = self.db.collection('vacantes').document(doc_id).get()
+        return doc.to_dict() if doc.exists else None
+
+    def get_pending_high_match_vacancies(self, profile="luis", limit=5):
+        """Retrieves vacancies that are worth applying but are still in PENDING status for a profile."""
+        if not self.db: return []
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        
+        docs = self.db.collection('vacantes')\
+            .where(filter=FieldFilter('evaluation.profile', '==', profile))\
+            .where(filter=FieldFilter('evaluation.worth_applying', '==', True))\
+            .where(filter=FieldFilter('status', '==', 'PENDING'))\
+            .limit(limit).stream()
+        
+        return [doc.to_dict() for doc in docs]
+
     def update_vacancy_status(self, doc_id, status):
         """Updates the status of a specific vacancy."""
         if not self.db: return

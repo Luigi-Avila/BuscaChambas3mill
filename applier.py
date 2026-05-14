@@ -6,11 +6,19 @@ import os
 
 async def fill_form(url, user_cv):
     """
-    Automates form filling by mapping fields with Gemini.
+    Automates form filling using a persistent LinkedIn session.
     """
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False) # Visual for the user
-        page = await browser.new_page()
+        user_data_dir = os.path.join(os.getcwd(), ".linkedin_session")
+        
+        # Use persistent context to reuse the session from login.py
+        context = await p.chromium.launch_persistent_context(
+            user_data_dir,
+            headless=False, # Keeping it visible so user can supervise
+            slow_mo=500
+        )
+        
+        page = context.pages[0] if context.pages else await context.new_page()
         await page.goto(url)
         
         # 1. Identify fields
@@ -35,7 +43,7 @@ async def fill_form(url, user_cv):
         
         print("Form filled as much as possible. Review and submit.")
         await asyncio.sleep(10) # Give user time to see
-        await browser.close()
+        await context.close()
 
 async def ask_gemini_to_map(field_label, cv_text):
     model = genai.GenerativeModel('gemini-flash-latest')
